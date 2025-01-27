@@ -7,15 +7,15 @@ class DBOperations:
  sql_create_table_firsttime = "create table if not exists "
 
 
- sql_create_table = "CREATE TABLE flights (flightID INTEGER PRIMARY KEY, flightOrigin VARCHAR(15), flightDestination VARCHAR(15), status VARCHAR(15))"
+ sql_create_table = "CREATE TABLE flights (flightID INTEGER PRIMARY KEY, flightOrigin VARCHAR(15), flightDestination VARCHAR(15), status VARCHAR(15), departureTime DATETIME)"
 
 
- sql_insert = "INSERT INTO flights (flightID,flightOrigin, flightDestination, status)  VALUES (?, ?, ?, ?)"
+ sql_insert = "INSERT INTO flights (flightID, flightOrigin, flightDestination, status, departureTime)  VALUES (?, ?, ?, ?, ?)"
  sql_select_all = "select * from flights"
  sql_search = "select * from flights where flightID = ?"
  sql_alter_data = ""
  sql_update_data = ""
- sql_delete_data = ""
+ sql_delete_data = "DELETE from flights where flightID = ?"
  sql_drop_table = "DROP TABLE flights"
 
 
@@ -58,6 +58,7 @@ class DBOperations:
      flight.set_flight_origin(str(input("Enter FlightOrigin: ")))
      flight.set_flight_destination(str(input("Enter FlightDestination: ")))
      flight.set_status(str(input("Enter FlightStatus: ")))
+     flight.set_departure_time(str(input("Enter FlightDepartureTime: ")))
 
 
      self.cur.execute(self.sql_insert, tuple(str(flight).split("\n")))
@@ -106,8 +107,10 @@ class DBOperations:
            print("Flight Origin: " + detail)
          elif index == 2:
            print("Flight Destination: " + detail)
+         elif index == 3:
+           print("Status: " + detail)
          else:
-           print("Status: " + str(detail))
+           print("Flight Departure Time: " + str(detail))
      else:
        print("No Record")
 
@@ -146,8 +149,11 @@ class DBOperations:
  def delete_data(self):
    try:
      self.get_connection()
-
-
+     flightID = int(input("Enter FlightNo: "))
+     self.cur.execute(self.sql_delete_data, tuple(str(flightID)))
+     self.conn.commit()
+     
+     result = self.cur
      if result.rowcount != 0:
        print(str(result.rowcount) + "Row(s) affected.")
      else:
@@ -178,6 +184,7 @@ class FlightInfo:
    self.flightOrigin = ''
    self.flightDestination = ''
    self.status = ''
+   self.flightDepartureTime = ''
 
 
  def set_flight_id(self, flightID):
@@ -195,6 +202,8 @@ class FlightInfo:
  def set_status(self, status):
    self.status = status
 
+ def set_departure_time(self, flightDepartureTime):
+   self.flightDepartureTime = flightDepartureTime
 
  def get_flight_id(self):
    return self.flightID
@@ -211,12 +220,14 @@ class FlightInfo:
  def get_status(self):
    return self.status
 
+ def get_departure_time(self):
+   return self.flightDepartureTime
 
  def __str__(self):
    return str(
      self.flightID
    ) + "\n" + self.flightOrigin + "\n" + self.flightDestination + "\n" + str(
-     self.status)
+     self.status + "\n" + self.flightDepartureTime)
 
 
 
