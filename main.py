@@ -12,7 +12,10 @@ class DBOperations:
 
  sql_insert = "INSERT INTO flights (flightID, flightOrigin, flightDestination, status, departureTime)  VALUES (?, ?, ?, ?, ?)"
  sql_select_all = "select * from flights"
- sql_search = "select * from flights where flightID = ?"
+ sql_search_flightID = "select * from flights where flightID = ?"
+ sql_search_flightDestination = "select * from flights where flightDestination = ?"
+ sql_search_status = "select * from flights where status = ?"
+ sql_search_departureTime = "select * from flights where DATE(departureTime) = ?"
  sql_alter_data = ""
  sql_update_data = ""
  sql_delete_data = "DELETE from flights where flightID = ?"
@@ -94,15 +97,34 @@ class DBOperations:
 
 
  def search_data(self):
-   try:
-     self.get_connection()
-     flightID = int(input("Enter FlightNo: "))
-     self.cur.execute(self.sql_search, tuple(str(flightID)))
+  try:
+    self.get_connection()
+    while True:
+     print("\n 1. Search by FlightId")
+     print(" 2. Search by Flight Destination")
+     print(" 3. Search by Flight Status")
+     print(" 4. Search by Flight Departure Time")
+
+     search_choice = int(input("Enter your choice: "))
+     if search_choice == 1:
+      flightID = int(input("Enter FlightNo: "))
+      self.cur.execute(self.sql_search_flightID, tuple(str(flightID)))
+     elif search_choice == 2:
+      flightDestination = str(input("Enter Flight Destination: "))
+      self.cur.execute(self.sql_search_flightDestination, (flightDestination,))
+     elif search_choice == 3:
+      flightStatus = str(input("Enter Flight Status: "))
+      self.cur.execute(self.sql_search_status, (flightStatus,))
+     elif search_choice == 4:
+      flightDepartureDate = str(input("Enter Flight Departure Date (YYYY-MM-DD): "))
+      self.cur.execute(self.sql_search_departureTime, (flightDepartureDate,))
+     
      result = self.cur.fetchone()
+
      if type(result) == type(tuple()):
        for index, detail in enumerate(result):
          if index == 0:
-           print("Flight ID: " + str(detail))
+           print("\nFlight ID: " + str(detail))
          elif index == 1:
            print("Flight Origin: " + detail)
          elif index == 2:
@@ -113,12 +135,12 @@ class DBOperations:
            print("Flight Departure Time: " + str(detail))
      else:
        print("No Record")
+     break
 
-
-   except Exception as e:
-     print(e)
-   finally:
-     self.conn.close()
+  except Exception as e:
+    print(e)
+  finally:
+    self.conn.close()
 
 
  def update_data(self):
