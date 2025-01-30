@@ -17,7 +17,8 @@ class DBOperations:
  sql_search_status = "select * from flights where status = ?"
  sql_search_departureTime = "select * from flights where DATE(departureTime) = ?"
  sql_alter_data = ""
- sql_update_data = ""
+ sql_update_departureTime = "UPDATE flights SET departureTime = ? where flightID = ?"
+ sql_update_status = "UPDATE flights SET status = ? where flightID = ?"
  sql_delete_data = "DELETE from flights where flightID = ?"
  sql_drop_table = "DROP TABLE flights"
 
@@ -144,23 +145,35 @@ class DBOperations:
 
 
  def update_data(self):
-   try:
+  try:
      self.get_connection()
-
-
      # Update statement
 
+     while True:
+      print("\n 1. Update Flight Departure Time")
+      print(" 2. Update Flight Status")
 
-     if result.rowcount != 0:
-       print(str(result.rowcount) + "Row(s) affected.")
-     else:
-       print("Cannot find this record in the database")
-
-
-   except Exception as e:
-     print(e)
-   finally:
-     self.conn.close()
+      search_choice = int(input("Enter your choice: "))
+      if search_choice == 1:
+        flightID = int(input("Enter FlightNo: "))
+        departureTime = input("Enter New Flight Departure Time: ")
+        self.cur.execute(self.sql_update_departureTime, (departureTime,flightID))
+        self.conn.commit()  # Commit changes
+      elif search_choice == 2:
+        flightID = int(input("Enter FlightNo: "))
+        flightStatus = input("Enter New Flight Status: ")
+        self.cur.execute(self.sql_update_status, (flightStatus,flightID))
+        self.conn.commit()  # Commit changes
+      result = self.cur
+      if result.rowcount != 0:
+        print(str(result.rowcount) + "Row(s) affected.")
+      else:
+        print("Cannot find this record in the database")
+      break
+  except Exception as e:
+    print(e)
+  finally:
+      self.conn.close()
 
 
 
