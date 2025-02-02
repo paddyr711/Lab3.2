@@ -4,14 +4,18 @@ import sqlite3
 # Give a name of your choice to the database
 
 class DBOperations:
- sql_create_table_firsttime = "create table if not exists "
-
+ sql_create_table_firsttime = "CREATE TABLE IF NOT EXISTS flights (flightID INTEGER PRIMARY KEY, flightOrigin VARCHAR(30), flightDestination VARCHAR(30), status VARCHAR(15), departureTime DATETIME, pilotID INTEGER, destinationID INTEGER)"
+ sql_create_pilot_table_firsttime = "CREATE TABLE IF NOT EXISTS pilots (pilotID INTEGER PRIMARY KEY, Name VARCHAR(30), Carrier VARCHAR(30))"
+ sql_create_destination_table_firsttime = "CREATE TABLE IF NOT EXISTS destinations (destinationID INTEGER PRIMARY KEY, flightDestination VARCHAR(30))"
 
  sql_create_table = "CREATE TABLE flights (flightID INTEGER PRIMARY KEY, flightOrigin VARCHAR(15), flightDestination VARCHAR(15), status VARCHAR(15), departureTime DATETIME)"
 
+ sql_insert_first_time = "INSERT INTO flights (flightID, flightOrigin, flightDestination, status, departureTime, pilotID, destinationID)  VALUES (?, ?, ?, ?, ?, ?, ?)"
+ sql_insert_pilot_first_time = "INSERT INTO pilots (pilotID, Name, Carrier)  VALUES (?, ?, ?)"
+ sql_insert_destination_first_time = "INSERT INTO destinations (destinationID, flightDestination)  VALUES (?, ?)"
 
  sql_insert = "INSERT INTO flights (flightID, flightOrigin, flightDestination, status, departureTime)  VALUES (?, ?, ?, ?, ?)"
- sql_select_all = "select * from flights"
+ sql_select_all = "select * from flights AS f INNER JOIN pilots AS p ON f.pilotID = p.pilotID INNER JOIN destinations AS d ON f.destinationID = d.destinationID"
  sql_search_flightID = "select * from flights where flightID = ?"
  sql_search_flightDestination = "select * from flights where flightDestination = ?"
  sql_search_status = "select * from flights where status = ?"
@@ -22,13 +26,102 @@ class DBOperations:
  sql_delete_data = "DELETE from flights where flightID = ?"
  sql_drop_table = "DROP TABLE flights"
 
+ flights_data = [
+      (1,	'London',	'New York',	'On Time',	'2023-10-1 8:00',	9,	11),
+      (2,	'Paris',	'Tokyo',	'Delayed',	'2023-10-2 9:00',	6,	12),
+      (3,	'Berlin',	'Sydney',	'Cancelled',	'2023-10-3 10:00',	9,	13),
+      (4,	'Rome',	'Toronto',	'On Time',	'2023-10-4 11:00',	3,	14),
+      (5,	'Madrid',	'Buenos Aires',	'On Time',	'2023-10-5 12:00',	9,	15),
+      (6,	'Amsterdam',	'Cape Town',	'Delayed',	'2023-10-6 13:00',	7,	16),
+      (7,	'Dublin',	'Mumbai',	'On Time',	'2023-10-7 14:00',	2,	17),
+      (8,	'Vienna',	'Shanghai',	'On Time',	'2023-10-8 15:00',	5,	18),
+      (9,	'Zurich',	'Los Angeles',	'On Time',	'2023-10-9 16:00',	2,	19),
+      (10,	'Stockholm',	'Mexico City',	'Delayed',	'2023-10-10 17:00',	1,	20)
+ ]
+
+ pilots_data = [
+      (1,	'John Smith',	'Skybound Airlines'),
+      (2,	'Jane Doe',	'Horizon Airways'),
+      (3,	'David Lee',	'Starlink Aviation'),
+      (4,	'Sarah Jones',	'Emerald Skies'),
+      (5,	'Michael Brown',	'Apex Flight Group'),
+      (6,	'Emily Davis',	'Global Wings'),
+      (6,	'Robert Wilson',	'Voyager Airlines'),
+      (7,	'Jessica Garcia',	'Summit Air'),
+      (9,	'Christopher Rodriguez',	'Coastal Carriers'),
+      (10,	'Ashley Martinez',	'Northern Lights Airlines')
+ ]
+
+ destination_data = [
+      (1,	'London'),
+      (2,	'Paris'),
+      (3,	'Berlin'),
+      (4,	'Rome'),
+      (5,	'Madrid'),
+      (6,	'Amsterdam'),
+      (7,	'Dublin'),
+      (8,	'Vienna'),
+      (9,	'Zurich'),
+      (10,	'Stockholm'),
+      (11,	'New York'),
+      (12,	'Tokyo'),
+      (13,	'Sydney'),
+      (14,	'Toronto'),
+      (15,	'Buenos Aires'),
+      (16,	'Cape Town'),
+      (17,	'Mumbai'),
+      (18,	'Shanghai'),
+      (19,	'Los Angeles'),
+      (20,	'Mexico City')
+ ]
 
  def __init__(self):
    try:
      self.conn = sqlite3.connect("DBFlights.db")
      self.cur = self.conn.cursor()
+     
      self.cur.execute(self.sql_create_table_firsttime)
+     self.cur.execute(self.sql_create_pilot_table_firsttime)
+     self.cur.execute(self.sql_create_destination_table_firsttime)
+     
      self.conn.commit()
+     
+     self.cur.execute("select count(*) from flights")
+     existing_rows = self.cur.fetchone()[0]
+
+     if existing_rows == 0:
+       for flight in self.flights_data:
+         try:
+           self.cur.execute(self.sql_insert_first_time,flight)
+         except sqlite3.IntegrityError as e:
+           print(f"Skipping insert due to error: {e}")
+     
+       self.conn.commit()
+
+     self.cur.execute("select count(*) from pilots")
+     existing_rows = self.cur.fetchone()[0]
+
+     if existing_rows == 0:
+       for pilot in self.pilots_data:
+         try:
+           self.cur.execute(self.sql_insert_pilot_first_time,pilot)
+         except sqlite3.IntegrityError as e:
+           print(f"Skipping insert due to error: {e}")
+     
+       self.conn.commit()
+     
+     self.cur.execute("select count(*) from destinations")
+     existing_rows = self.cur.fetchone()[0]
+
+     if existing_rows == 0:
+       for destination in self.destination_data:
+         try:
+           self.cur.execute(self.sql_insert_destination_first_time,destination)
+         except sqlite3.IntegrityError as e:
+           print(f"Skipping insert due to error: {e}")
+     
+       self.conn.commit()
+
    except Exception as e:
      print(e)
    finally:
