@@ -4,11 +4,32 @@ import sqlite3
 # Give a name of your choice to the database
 
 class DBOperations:
- sql_create_table_firsttime = "CREATE TABLE IF NOT EXISTS flights (flightID INTEGER PRIMARY KEY, flightOrigin VARCHAR(30), flightDestination VARCHAR(30), status VARCHAR(15), departureTime DATETIME, pilotID INTEGER, destinationID INTEGER)"
- sql_create_pilot_table_firsttime = "CREATE TABLE IF NOT EXISTS pilots (pilotID INTEGER PRIMARY KEY, Name VARCHAR(30), Carrier VARCHAR(30))"
- sql_create_destination_table_firsttime = "CREATE TABLE IF NOT EXISTS destinations (destinationID INTEGER PRIMARY KEY, flightDestination VARCHAR(30))"
+ sql_create_table_firsttime = """
+ CREATE TABLE IF NOT EXISTS flights (
+ flightID INTEGER PRIMARY KEY, 
+ flightOrigin VARCHAR(30), 
+ flightDestination VARCHAR(30), 
+ status VARCHAR(15), 
+ departureTime DATETIME, 
+ pilotID INTEGER, 
+ destinationID INTEGER
+ )
+ """
+ sql_create_pilot_table_firsttime = """
+ CREATE TABLE IF NOT EXISTS pilots (
+ pilotID INTEGER PRIMARY KEY, 
+ Name VARCHAR(30), 
+ Carrier VARCHAR(30)
+ )
+ """
+ sql_create_destination_table_firsttime = """
+ CREATE TABLE IF NOT EXISTS destinations (
+ destinationID INTEGER PRIMARY KEY, 
+ flightDestination VARCHAR(30)
+ )
+ """
 
- sql_create_table = "CREATE TABLE flights (flightID INTEGER PRIMARY KEY, flightOrigin VARCHAR(15), flightDestination VARCHAR(15), status VARCHAR(15), departureTime DATETIME)"
+# sql_create_table = "CREATE TABLE flights (flightID INTEGER PRIMARY KEY, flightOrigin VARCHAR(15), flightDestination VARCHAR(15), status VARCHAR(15), departureTime DATETIME)"
 
  sql_insert_first_time = "INSERT INTO flights (flightID, flightOrigin, flightDestination, status, departureTime, pilotID, destinationID)  VALUES (?, ?, ?, ?, ?, ?, ?)"
  sql_insert_pilot_first_time = "INSERT INTO pilots (pilotID, Name, Carrier)  VALUES (?, ?, ?)"
@@ -23,20 +44,29 @@ class DBOperations:
  sql_alter_data = ""
  sql_update_departureTime = "UPDATE flights SET departureTime = ? where flightID = ?"
  sql_update_status = "UPDATE flights SET status = ? where flightID = ?"
+ sql_update_pilot = "UPDATE flights SET pilotID = ? where flightID = ?"
  sql_delete_data = "DELETE from flights where flightID = ?"
  sql_drop_table = "DROP TABLE flights"
+ sql_view_pilots = """
+ select f.pilotID, p.Name, f.flightID, p.flightDestination,f.departureTime, f.status 
+ from flights AS f 
+ INNER JOIN pilots AS p ON f.pilotID = p.pilotID 
+ INNER JOIN destinations AS p ON f.destinationID = p.destinationID 
+ GROUP BY 1,2,3,4,5,6 
+ Order BY 1 ASC
+ """
 
  flights_data = [
-      (1,	'London',	'New York',	'On Time',	'2023-10-1 8:00',	9,	11),
-      (2,	'Paris',	'Tokyo',	'Delayed',	'2023-10-2 9:00',	6,	12),
-      (3,	'Berlin',	'Sydney',	'Cancelled',	'2023-10-3 10:00',	9,	13),
-      (4,	'Rome',	'Toronto',	'On Time',	'2023-10-4 11:00',	3,	14),
-      (5,	'Madrid',	'Buenos Aires',	'On Time',	'2023-10-5 12:00',	9,	15),
-      (6,	'Amsterdam',	'Cape Town',	'Delayed',	'2023-10-6 13:00',	7,	16),
-      (7,	'Dublin',	'Mumbai',	'On Time',	'2023-10-7 14:00',	2,	17),
-      (8,	'Vienna',	'Shanghai',	'On Time',	'2023-10-8 15:00',	5,	18),
-      (9,	'Zurich',	'Los Angeles',	'On Time',	'2023-10-9 16:00',	2,	19),
-      (10,	'Stockholm',	'Mexico City',	'Delayed',	'2023-10-10 17:00',	1,	20)
+      (1,	'London',	'New York',	'On Time',	'2023-10-01 08:00:00',	9,	11),
+      (2,	'Paris',	'Tokyo',	'Delayed',	'2023-10-02 09:00:00',	6,	12),
+      (3,	'Berlin',	'Sydney',	'Cancelled',	'2023-10-03 10:00:00',	9,	13),
+      (4,	'Rome',	'Toronto',	'On Time',	'2023-10-04 11:00:00',	3,	14),
+      (5,	'Madrid',	'Buenos Aires',	'On Time',	'2023-10-05 12:00:00',	9,	15),
+      (6,	'Amsterdam',	'Cape Town',	'Delayed',	'2023-10-06 13:00:00',	7,	16),
+      (7,	'Dublin',	'Mumbai',	'On Time',	'2023-10-07 14:00:00',	2,	17),
+      (8,	'Vienna',	'Shanghai',	'On Time',	'2023-10-08 15:00:00',	5,	18),
+      (9,	'Zurich',	'Los Angeles',	'On Time',	'2023-10-09 16:00:00',	2,	19),
+      (10,	'Stockholm',	'Mexico City',	'Delayed',	'2023-10-10 17:00:00',	1,	20)
  ]
 
  pilots_data = [
@@ -212,25 +242,12 @@ class DBOperations:
      elif search_choice == 4:
       flightDepartureDate = str(input("Enter Flight Departure Date (YYYY-MM-DD): "))
       self.cur.execute(self.sql_search_departureTime, (flightDepartureDate,))
-     
-     result = self.cur.fetchone()
+     # print(self.cur.execute("select DATE(departureTime) from flights"))
+     result = self.cur.fetchall()
 
-     if type(result) == type(tuple()):
-       for index, detail in enumerate(result):
-         if index == 0:
-           print("\nFlight ID: " + str(detail))
-         elif index == 1:
-           print("Flight Origin: " + detail)
-         elif index == 2:
-           print("Flight Destination: " + detail)
-         elif index == 3:
-           print("Status: " + detail)
-         else:
-           print("Flight Departure Time: " + str(detail))
-     else:
-       print("No Record")
+     for row in result:
+      print(row)  # Print each row
      break
-
   except Exception as e:
     print(e)
   finally:
@@ -269,6 +286,44 @@ class DBOperations:
       self.conn.close()
 
 
+ def update_pilot(self):
+  try:
+     self.get_connection()
+     # Update statement
+     while True:
+      flightID = int(input("Enter FlightNo: "))
+      pilotID = input("To Assign Pilot Enter PilotID: ")
+      self.cur.execute(self.sql_update_pilot, (pilotID,flightID))
+      self.conn.commit()  # Commit changes
+
+      result = self.cur
+      if result.rowcount != 0:
+       print(str(result.rowcount) + "Row(s) affected.")
+      else:
+       print("Cannot find this record in the database")
+      break
+  except Exception as e:
+    print(e)
+  finally:
+      self.conn.close()
+
+ def view_pilots(self):
+   try:
+     self.get_connection()
+     self.cur.execute(self.sql_view_pilots)
+     result = self.cur.fetchall()
+
+     for row in result:
+      print(row)  # Print each row
+
+
+     # think how you could develop this method to show the records
+
+
+   except Exception as e:
+     print(e)
+   finally:
+     self.conn.close()
 
 
 # Define Delete_data method to delete data from the table. The user will need to input the flight id to delete the corrosponding record.
@@ -368,33 +423,36 @@ class FlightInfo:
 while True:
  print("\n Menu:")
  print("**********")
- print(" 1. Create table FlightInfo")
- print(" 2. Insert data into FlightInfo")
- print(" 3. Select all data from FlightInfo")
- print(" 4. Search a flight")
- print(" 5. Update data some records")
- print(" 6. Delete data some records")
- print(" 7. Drop table")
- print(" 8. Exit\n")
+ print(" 1. Add a New Flight")
+ print(" 2. View All Flights")
+ print(" 3. Search for Flight by Criteria")
+ print(" 4. Update Flight Information")
+ print(" 5. Delete Flight Information")
+ print(" 6. Assign Pilot")
+ print(" 7. View Pilot Schedule")
+ print(" 8. Drop table")
+ print(" 9. Exit\n")
 
 
  __choose_menu = int(input("Enter your choice: "))
  db_ops = DBOperations()
  if __choose_menu == 1:
-   db_ops.create_table()
- elif __choose_menu == 2:
    db_ops.insert_data()
- elif __choose_menu == 3:
+ elif __choose_menu == 2:
    db_ops.select_all()
- elif __choose_menu == 4:
+ elif __choose_menu == 3:
    db_ops.search_data()
- elif __choose_menu == 5:
+ elif __choose_menu == 4:
    db_ops.update_data()
- elif __choose_menu == 6:
+ elif __choose_menu == 5:
    db_ops.delete_data()
+ elif __choose_menu == 6:
+   db_ops.update_pilot()
  elif __choose_menu == 7:
-   db_ops.drop_table() 
+   db_ops.view_pilots()
  elif __choose_menu == 8:
+   db_ops.drop_table() 
+ elif __choose_menu == 9:
    exit(0)
  else:
    print("Invalid Choice")
