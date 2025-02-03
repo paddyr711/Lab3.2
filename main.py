@@ -4,15 +4,15 @@ import sqlite3
 # Give a name of your choice to the database
 
 class DBOperations:
+ 
  sql_create_table_firsttime = """
  CREATE TABLE IF NOT EXISTS flights (
  flightID INTEGER PRIMARY KEY, 
- flightOrigin VARCHAR(30), 
- flightDestination VARCHAR(30), 
+ originID INTEGER, 
+ destinationID INTEGER, 
  status VARCHAR(15), 
  departureTime DATETIME, 
- pilotID INTEGER, 
- destinationID INTEGER
+ pilotID INTEGER 
  )
  """
  sql_create_pilot_table_firsttime = """
@@ -31,42 +31,95 @@ class DBOperations:
 
 # sql_create_table = "CREATE TABLE flights (flightID INTEGER PRIMARY KEY, flightOrigin VARCHAR(15), flightDestination VARCHAR(15), status VARCHAR(15), departureTime DATETIME)"
 
- sql_insert_first_time = "INSERT INTO flights (flightID, flightOrigin, flightDestination, status, departureTime, pilotID, destinationID)  VALUES (?, ?, ?, ?, ?, ?, ?)"
+ sql_insert_first_time = "INSERT INTO flights (flightID, originID, destinationID, status, departureTime, pilotID)  VALUES (?, ?, ?, ?, ?, ?)"
  sql_insert_pilot_first_time = "INSERT INTO pilots (pilotID, Name, Carrier)  VALUES (?, ?, ?)"
  sql_insert_destination_first_time = "INSERT INTO destinations (destinationID, flightDestination)  VALUES (?, ?)"
 
  sql_insert = "INSERT INTO flights (flightID, flightOrigin, flightDestination, status, departureTime)  VALUES (?, ?, ?, ?, ?)"
- sql_select_all = "select * from flights AS f INNER JOIN pilots AS p ON f.pilotID = p.pilotID INNER JOIN destinations AS d ON f.destinationID = d.destinationID"
- sql_search_flightID = "select * from flights where flightID = ?"
- sql_search_flightDestination = "select * from flights where flightDestination = ?"
- sql_search_status = "select * from flights where status = ?"
+ 
+ sql_select_all = """
+ select * 
+ from flights AS f 
+ INNER JOIN pilots AS p ON f.pilotID = p.pilotID 
+ INNER JOIN destinations AS d ON f.destinationID = d.destinationID
+ """
+ sql_search_flightID = """
+ select * 
+ from flights as f 
+ INNER JOIN pilots AS p ON f.pilotID = p.pilotID 
+ INNER JOIN destinations AS d ON f.destinationID = d.destinationID
+ where flightID = ?
+ """
+ sql_search_flightDestination = """
+ Select * 
+ FROM flights as f
+ INNER JOIN pilots AS p ON f.pilotID = p.pilotID 
+ where destinationID = (select d.destinationID from destinations as d 
+ INNER JOIN flights AS f ON f.destinationID = d.destinationID
+ where d.flightDestination = ?)
+ """
+ sql_search_status = """ 
+ select * from flights as f 
+ INNER JOIN pilots AS p ON f.pilotID = p.pilotID 
+ INNER JOIN destinations AS d ON f.destinationID = d.destinationID
+ where status = ?
+ """
  sql_search_departureTime = "select * from flights where DATE(departureTime) = ?"
+ 
  sql_alter_data = ""
+ 
  sql_update_departureTime = "UPDATE flights SET departureTime = ? where flightID = ?"
  sql_update_status = "UPDATE flights SET status = ? where flightID = ?"
  sql_update_pilot = "UPDATE flights SET pilotID = ? where flightID = ?"
+ sql_update_destination = "UPDATE destinations SET flightDestination = ? where destinationID = ?"
+
  sql_delete_data = "DELETE from flights where flightID = ?"
  sql_drop_table = "DROP TABLE flights"
+ 
  sql_view_pilots = """
- select f.pilotID, p.Name, f.flightID, p.flightDestination,f.departureTime, f.status 
+ select f.pilotID, p.Name, f.flightID, d.flightDestination,f.departureTime, f.status 
  from flights AS f 
  INNER JOIN pilots AS p ON f.pilotID = p.pilotID 
- INNER JOIN destinations AS p ON f.destinationID = p.destinationID 
+ INNER JOIN destinations AS d ON f.destinationID = d.destinationID
  GROUP BY 1,2,3,4,5,6 
  Order BY 1 ASC
  """
+ sql_view_destinations = """
+ select d.flightDestination, f.flightID, f.departureTime, f.status 
+ from flights AS f 
+ INNER JOIN pilots AS p ON f.pilotID = p.pilotID 
+ INNER JOIN destinations AS d ON f.destinationID = d.destinationID 
+ GROUP BY 1,2,3,4
+ Order BY 3 ASC
+ """
+ sql_summary_pilot = """
+ select p.Name, count(flightID) 
+ from flights AS f 
+ INNER JOIN pilots AS p ON f.pilotID = p.pilotID 
+ INNER JOIN destinations AS d ON f.destinationID = d.destinationID 
+ GROUP BY 1
+ Order BY 2 ASC
+ """
+ sql_summary_destination = """
+ select p.flightDestination, count(flightID) 
+ from flights AS f 
+ INNER JOIN pilots AS p ON f.pilotID = p.pilotID 
+ INNER JOIN destinations AS p ON f.destinationID = p.destinationID 
+ GROUP BY 1
+ Order BY 2 ASC
+ """
 
  flights_data = [
-      (1,	'London',	'New York',	'On Time',	'2023-10-01 08:00:00',	9,	11),
-      (2,	'Paris',	'Tokyo',	'Delayed',	'2023-10-02 09:00:00',	6,	12),
-      (3,	'Berlin',	'Sydney',	'Cancelled',	'2023-10-03 10:00:00',	9,	13),
-      (4,	'Rome',	'Toronto',	'On Time',	'2023-10-04 11:00:00',	3,	14),
-      (5,	'Madrid',	'Buenos Aires',	'On Time',	'2023-10-05 12:00:00',	9,	15),
-      (6,	'Amsterdam',	'Cape Town',	'Delayed',	'2023-10-06 13:00:00',	7,	16),
-      (7,	'Dublin',	'Mumbai',	'On Time',	'2023-10-07 14:00:00',	2,	17),
-      (8,	'Vienna',	'Shanghai',	'On Time',	'2023-10-08 15:00:00',	5,	18),
-      (9,	'Zurich',	'Los Angeles',	'On Time',	'2023-10-09 16:00:00',	2,	19),
-      (10,	'Stockholm',	'Mexico City',	'Delayed',	'2023-10-10 17:00:00',	1,	20)
+      (1,	1,	11,	'On Time',	'2023-10-01 08:00:00',	9),
+      (2,	2,	12,	'Delayed',	'2023-10-02 09:00:00',	6),
+      (3,	3,	13,	'Cancelled',	'2023-10-03 10:00:00',	9),
+      (4,	4,	14,	'On Time',	'2023-10-04 11:00:00',	3),
+      (5,	5,	15,	'On Time',	'2023-10-05 12:00:00',	9),
+      (6,	6,	16,	'Delayed',	'2023-10-06 13:00:00',	7),
+      (7,	7,	17,	'On Time',	'2023-10-07 14:00:00',	2),
+      (8,	8,	18,	'On Time',	'2023-10-08 15:00:00',	5),
+      (9,	9,	19,	'On Time',	'2023-10-09 16:00:00',	2),
+      (10,	10,	20,	'Delayed',	'2023-10-10 17:00:00',	1)
  ]
 
  pilots_data = [
@@ -202,22 +255,22 @@ class DBOperations:
 
 
  def select_all(self):
-   try:
-     self.get_connection()
-     self.cur.execute(self.sql_select_all)
-     result = self.cur.fetchall()
+    try:
+        self.get_connection()
+        self.cur.execute(self.sql_select_all)  # Execute your SQL query
+        result = self.cur.fetchall()
+       
+        # Get column names from cursor.description
+       # headers = [description[0] for description in self.cur.description]
+       # print(headers)
 
-     for row in result:
-      print(row)  # Print each row
+        for row in result:
+            print(row)
 
-
-     # think how you could develop this method to show the records
-
-
-   except Exception as e:
-     print(e)
-   finally:
-     self.conn.close()
+    except Exception as e:
+        print(e)
+    finally:
+        self.conn.close()
 
 
  def search_data(self):
@@ -315,16 +368,51 @@ class DBOperations:
 
      for row in result:
       print(row)  # Print each row
-
-
-     # think how you could develop this method to show the records
-
-
    except Exception as e:
      print(e)
    finally:
      self.conn.close()
 
+
+ def view_destinations(self):
+   try:
+     self.get_connection()
+     self.cur.execute(self.sql_view_destinations)
+     result = self.cur.fetchall()
+
+     for row in result:
+      print(row)  # Print each row
+   except Exception as e:
+     print(e)
+   finally:
+     self.conn.close()
+
+ def update_destination(self):
+  try:
+     self.get_connection()
+     # Update statement
+     while True:
+      destinationID = int(input("Enter Destination ID: "))
+      self.cur.execute("Select flightDestination from destinations where destinationID = ?",tuple(str(destinationID)))
+      self.conn.commit()  # Commit changes
+
+      result = self.cur.fetchone()[0]
+      print("Current Flight Destination: "+ str(result))
+
+      flightDestination = input("Enter New Flight Destination: ")
+      self.cur.execute(self.sql_update_destination, (flightDestination,destinationID))
+      self.conn.commit()  # Commit changes
+
+      result = self.cur
+      if result.rowcount != 0:
+       print(str(result.rowcount) + "Row(s) affected.")
+      else:
+       print("Cannot find this record in the database")
+      break
+  except Exception as e:
+    print(e)
+  finally:
+      self.conn.close()
 
 # Define Delete_data method to delete data from the table. The user will need to input the flight id to delete the corrosponding record.
 
@@ -357,6 +445,31 @@ class DBOperations:
      print(e)
    finally:
      self.conn.close()
+
+ def summary(self):
+   try:
+     self.get_connection()
+     # Update statement
+
+     while True:
+      print("\n 1. View No. Flights per Destination")
+      print(" 2. View No. Flights per Pilot")
+
+      search_choice = int(input("Enter your choice: "))
+      if search_choice == 1:
+        self.cur.execute(self.sql_summary_destination)
+
+      elif search_choice == 2:
+        self.cur.execute(self.sql_summary_pilot)
+      
+      result = self.cur.fetchall()
+      for row in result:
+       print(row)  # Print each row
+      break
+   except Exception as e:
+    print(e)
+   finally:
+      self.conn.close()  
 
 
 class FlightInfo:
@@ -430,8 +543,11 @@ while True:
  print(" 5. Delete Flight Information")
  print(" 6. Assign Pilot")
  print(" 7. View Pilot Schedule")
- print(" 8. Drop table")
- print(" 9. Exit\n")
+ print(" 8. Udpate Destination")
+ print(" 9. View Destinations")
+ print(" 10. View Summary Data")
+ print(" 11. Drop table")
+ print(" 12. Exit\n")
 
 
  __choose_menu = int(input("Enter your choice: "))
@@ -451,9 +567,16 @@ while True:
  elif __choose_menu == 7:
    db_ops.view_pilots()
  elif __choose_menu == 8:
-   db_ops.drop_table() 
+   db_ops.update_destination()
  elif __choose_menu == 9:
+   db_ops.view_destinations()
+ elif __choose_menu == 10:
+   db_ops.summary()
+ elif __choose_menu ==11:
+   db_ops.drop_table() 
+ elif __choose_menu == 12:
    exit(0)
  else:
    print("Invalid Choice")
+
 
