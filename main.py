@@ -4,7 +4,7 @@ import sqlite3
 # Give a name of your choice to the database
 
 class DBOperations:
- 
+ # Creating flights, pilots and destinations tables for the first time
  sql_create_table_firsttime = """
  CREATE TABLE IF NOT EXISTS flights (
  flightID INTEGER PRIMARY KEY, 
@@ -28,20 +28,21 @@ class DBOperations:
  flightDestination VARCHAR(30)
  )
  """
-
-# sql_create_table = "CREATE TABLE flights (flightID INTEGER PRIMARY KEY, flightOrigin VARCHAR(15), flightDestination VARCHAR(15), status VARCHAR(15), departureTime DATETIME)"
+# Parameterised INSERT queries to populate the tables with the dummy data beloe
 
  sql_insert_first_time = "INSERT INTO flights (flightID, originID, destinationID, status, departureTime, pilotID)  VALUES (?, ?, ?, ?, ?, ?)"
  sql_insert_pilot_first_time = "INSERT INTO pilots (pilotID, Name, Carrier)  VALUES (?, ?, ?)"
  sql_insert_destination_first_time = "INSERT INTO destinations (destinationID, flightDestination)  VALUES (?, ?)"
  sql_insert = "INSERT INTO flights (flightID, originID, destinationID, status, departureTime, pilotID)  VALUES (?, ?, ?, ?, ?, ?)"
  
+ # Select all data from 3 tables to display to the user
  sql_select_all = """
  select * 
  from flights AS f 
  INNER JOIN pilots AS p ON f.pilotID = p.pilotID 
  INNER JOIN destinations AS d ON f.destinationID = d.destinationID
  """
+ # Select all data based on flight ID
  sql_search_flightID = """
  select * 
  from flights as f 
@@ -49,6 +50,7 @@ class DBOperations:
  INNER JOIN destinations AS d ON f.destinationID = d.destinationID
  where flightID = ?
  """
+ # Select all data based on flight destination 
  sql_search_flightDestination = """
  Select * 
  FROM flights as f
@@ -57,24 +59,29 @@ class DBOperations:
  INNER JOIN flights AS f ON f.destinationID = d.destinationID
  where d.flightDestination = ?)
  """
+  # Select all data based on flight status 
  sql_search_status = """ 
  select * from flights as f 
  INNER JOIN pilots AS p ON f.pilotID = p.pilotID 
  INNER JOIN destinations AS d ON f.destinationID = d.destinationID
  where status = ?
  """
+ # Select all data based on flight departure date 
  sql_search_departureTime = "select * from flights where DATE(departureTime) = ?"
  
- sql_alter_data = ""
- 
+  # Queries to update flight departure time, status, pilot or destination 
  sql_update_departureTime = "UPDATE flights SET departureTime = ? where flightID = ?"
  sql_update_status = "UPDATE flights SET status = ? where flightID = ?"
  sql_update_pilot = "UPDATE flights SET pilotID = ? where flightID = ?"
  sql_update_destination = "UPDATE destinations SET flightDestination = ? where destinationID = ?"
 
+ # Query to delete row in the flights table based on flight ID 
  sql_delete_data = "DELETE from flights where flightID = ?"
+
+ # Query to drop the flights
  sql_drop_table = "DROP TABLE flights"
  
+ # Query to view pilots ID and Name for each flight
  sql_view_pilots = """
  select f.pilotID, p.Name, f.flightID, d.flightDestination,f.departureTime, f.status 
  from flights AS f 
@@ -83,6 +90,7 @@ class DBOperations:
  GROUP BY 1,2,3,4,5,6 
  Order BY 1 ASC
  """
+ # Query to view destination of each flight
  sql_view_destinations = """
  select d.flightDestination, f.flightID, f.departureTime, f.status 
  from flights AS f 
@@ -91,6 +99,7 @@ class DBOperations:
  GROUP BY 1,2,3,4
  Order BY 3 ASC
  """
+ # Query to pull no. of flights per pilot
  sql_summary_pilot = """
  select p.Name, count(flightID) 
  from flights AS f 
@@ -99,6 +108,7 @@ class DBOperations:
  GROUP BY 1
  Order BY 2 ASC
  """
+ # Query to pull no. of flights per destination
  sql_summary_destination = """
  select p.flightDestination, count(flightID) 
  from flights AS f 
@@ -107,7 +117,7 @@ class DBOperations:
  GROUP BY 1
  Order BY 2 ASC
  """
-
+# Dummy data to populate the tables
  flights_data = [
       (1,	1,	11,	'On Time',	'2023-10-01 08:00:00',	9),
       (2,	2,	12,	'Delayed',	'2023-10-02 09:00:00',	6),
@@ -156,7 +166,7 @@ class DBOperations:
       (19,	'Los Angeles'),
       (20,	'Mexico City')
  ]
-
+# Connecting to the database and creating the tables for the first time
  def __init__(self):
    try:
      self.conn = sqlite3.connect("DBFlights.db")
@@ -168,6 +178,7 @@ class DBOperations:
      
      self.conn.commit()
      
+# Checking if there is data in the flights table and fetching the first row
      self.cur.execute("select count(*) from flights")
      existing_rows = self.cur.fetchone()[0]
 
@@ -226,18 +237,18 @@ class DBOperations:
    finally:
      self.conn.close()
 
-
+# Inserting data into the respective tables using the setters
  def insert_data(self):
    try:
      self.get_connection()
 
-
      flight = FlightInfo()
      flight.set_flight_id(int(input("Enter FlightID: ")))
-     flight.set_flight_origin(str(input("Enter FlightOrigin: ")))
-     flight.set_flight_destination(str(input("Enter FlightDestination: ")))
-     flight.set_status(str(input("Enter FlightStatus: ")))
-     flight.set_departure_time(str(input("Enter FlightDepartureTime: ")))
+     flight.set_origin_id(str(input("Enter Flight Origin ID: ")))
+     flight.set_destination_id(str(input("Enter Flight Destination ID: ")))
+     flight.set_status(str(input("Enter Flight Status: ")))
+     flight.set_departure_time(str(input("Enter Flight Departure Time: ")))
+     flight.set_pilot_id(str(input("Enter Flight Pilot ID: ")))
 
 
      self.cur.execute(self.sql_insert, tuple(str(flight).split("\n")))
@@ -245,26 +256,23 @@ class DBOperations:
 
      self.conn.commit()
      print("Inserted data successfully")
-   except sqlite3.IntegrityError as e:  # Catch the UNIQUE constraint error
+# Check to prevent UNIQUE constraint error - preventing duplicate data entries
+   except sqlite3.IntegrityError as e:  
     print("Error: FlightID already exists. Please use a different ID.")
    except Exception as e:
      print(e)
    finally:
      self.conn.close()
 
-
+# select all functionality
  def select_all(self):
     try:
         self.get_connection()
-        self.cur.execute(self.sql_select_all)  # Execute your SQL query
+        self.cur.execute(self.sql_select_all)
         result = self.cur.fetchall()
-       
-        # Get column names from cursor.description
-       # headers = [description[0] for description in self.cur.description]
-       # print(headers)
 
         for row in result:
-            print(row)
+            print(row) # Printing out each row
 
     except Exception as e:
         print(e)
@@ -275,6 +283,7 @@ class DBOperations:
  def search_data(self):
   try:
     self.get_connection()
+    # Asking user to select criteria for the search 
     while True:
      print("\n 1. Search by FlightId")
      print(" 2. Search by Flight Destination")
@@ -309,8 +318,7 @@ class DBOperations:
  def update_data(self):
   try:
      self.get_connection()
-     # Update statement
-
+# Asking user to select attribute to update 
      while True:
       print("\n 1. Update Flight Departure Time")
       print(" 2. Update Flight Status")
@@ -331,17 +339,16 @@ class DBOperations:
         print(str(result.rowcount) + "Row(s) affected.")
       else:
         print("Cannot find this record in the database")
-      break
+      break # Finishing the action and returning to menu rather than looping back to attribute selection again
   except Exception as e:
     print(e)
   finally:
       self.conn.close()
 
-
+# Updating pilot assigned to a flight
  def update_pilot(self):
   try:
      self.get_connection()
-     # Update statement
      while True:
       flightID = int(input("Enter FlightNo: "))
       pilotID = input("To Assign Pilot Enter PilotID: ")
@@ -350,7 +357,7 @@ class DBOperations:
 
       result = self.cur
       if result.rowcount != 0:
-       print(str(result.rowcount) + "Row(s) affected.")
+       print(str(result.rowcount) + "Row(s) affected.") # Show user that the database has been updated
       else:
        print("Cannot find this record in the database")
       break
@@ -359,6 +366,7 @@ class DBOperations:
   finally:
       self.conn.close()
 
+# View all pilots
  def view_pilots(self):
    try:
      self.get_connection()
@@ -372,7 +380,7 @@ class DBOperations:
    finally:
      self.conn.close()
 
-
+# View all destinations
  def view_destinations(self):
    try:
      self.get_connection()
@@ -413,13 +421,11 @@ class DBOperations:
   finally:
       self.conn.close()
 
-# Define Delete_data method to delete data from the table. The user will need to input the flight id to delete the corrosponding record.
-
-
+# delete data in flights table using the flight ID
  def delete_data(self):
    try:
      self.get_connection()
-     flightID = int(input("Enter FlightNo: "))
+     flightID = int(input("Enter Flight ID: "))
      self.cur.execute(self.sql_delete_data, tuple(str(flightID)))
      self.conn.commit()
      
@@ -435,6 +441,7 @@ class DBOperations:
    finally:
      self.conn.close()
 
+# Drop the flights table
  def drop_table(self):
    try:
      self.get_connection()
@@ -448,8 +455,7 @@ class DBOperations:
  def summary(self):
    try:
      self.get_connection()
-     # Update statement
-
+# User to select what to get summary for
      while True:
       print("\n 1. View No. Flights per Destination")
       print(" 2. View No. Flights per Pilot")
@@ -476,22 +482,23 @@ class FlightInfo:
 
  def __init__(self):
    self.flightID = 0
-   self.flightOrigin = ''
-   self.flightDestination = ''
+   self.originID = ''
+   self.destinationID = ''
    self.status = ''
    self.flightDepartureTime = ''
+   self.pilotID = ''
 
-
+# Creating setters
  def set_flight_id(self, flightID):
    self.flightID = flightID
 
 
- def set_flight_origin(self, flightOrigin):
-   self.flightOrigin = flightOrigin
+ def set_origin_id(self, originID):
+   self.originID = originID
 
 
- def set_flight_destination(self, flightDestination):
-   self.flightDestination = flightDestination
+ def set_destination_id(self, destinationID):
+   self.destinationID = destinationID
 
 
  def set_status(self, status):
@@ -499,30 +506,35 @@ class FlightInfo:
 
  def set_departure_time(self, flightDepartureTime):
    self.flightDepartureTime = flightDepartureTime
+ 
+ def set_pilot_id(self, pilotID):
+   self.pilotID = pilotID
+
+# Creating getters
 
  def get_flight_id(self):
    return self.flightID
 
+ def get_origin_id(self):
+   return self.originID
 
- def get_flight_origin(self):
-   return self.flightOrigin
-
-
- def get_flight_destination(self):
-   return self.flightDestination
-
+ def get_destination_id(self):
+   return self.destinationID
 
  def get_status(self):
    return self.status
 
  def get_departure_time(self):
    return self.flightDepartureTime
+ 
+ def get_pilot_id(self):
+   return self.pilotID
 
  def __str__(self):
    return str(
      self.flightID
-   ) + "\n" + self.flightOrigin + "\n" + self.flightDestination + "\n" + str(
-     self.status + "\n" + self.flightDepartureTime)
+   ) + "\n" + self.originID + "\n" + self.destinationID + "\n" + str(
+     self.status + "\n" + self.flightDepartureTime + "\n" + self.pilotID)
 
 
 
