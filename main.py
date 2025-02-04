@@ -34,8 +34,7 @@ class DBOperations:
  sql_insert_first_time = "INSERT INTO flights (flightID, originID, destinationID, status, departureTime, pilotID)  VALUES (?, ?, ?, ?, ?, ?)"
  sql_insert_pilot_first_time = "INSERT INTO pilots (pilotID, Name, Carrier)  VALUES (?, ?, ?)"
  sql_insert_destination_first_time = "INSERT INTO destinations (destinationID, flightDestination)  VALUES (?, ?)"
-
- sql_insert = "INSERT INTO flights (flightID, flightOrigin, flightDestination, status, departureTime)  VALUES (?, ?, ?, ?, ?)"
+ sql_insert = "INSERT INTO flights (flightID, originID, destinationID, status, departureTime, pilotID)  VALUES (?, ?, ?, ?, ?, ?)"
  
  sql_select_all = """
  select * 
